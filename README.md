@@ -1,8 +1,8 @@
 # Absolute.
 
-### A Python-based chatbot powered by DeepSeek API.
+## A Python-based chatbot powered by DeepSeek API.
 
-* Features
+###  Features
 - Real-time conversation.
 
 - Memory of past messages.
