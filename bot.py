@@ -19,7 +19,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'✅ Absolute is online as {bot.user}')
+    print(f'Absolute is online as {bot.user}')
 
 @bot.command()
 async def ask(ctx, *, question):
@@ -44,6 +44,6 @@ async def ask(ctx, *, question):
                 await ctx.send(answer)
 
         except Exception as e:
-            await ctx.send(f"❌ Error: {e}")
+            await ctx.send(f"Error ! ! !    : {e}")
 
 bot.run(DISCORD_TOKEN)
