@@ -1,10 +1,26 @@
-# Ignore the environment variables file
+# --- Secrets & API Keys ---
 .env
 
-# Ignore Python cache files
+# --- Python Files ---
 __pycache__/
-*.pyc
-
-# Ignore virtual environments
+*.py[cod]
+*$py.class
+*.so
+.venv/
 venv/
+ENV/
 env/
+
+# --- Logs & Databases ---
+*.log
+# If you ever use a local database like SQLite for Absolute:
+*.sqlite3
+*.db
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+
+# --- IDEs ---
+.vscode/
+.idea/
