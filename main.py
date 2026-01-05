@@ -1,62 +1,49 @@
 import os
+import discord
+from discord.ext import commands
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# 1. Load the API key from the .env file
+# 1. Load Keys
 load_dotenv()
-api_key = os.getenv("DEEPSEEK_API_KEY")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+DEEPSEEK_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-# 2. Initialize the DeepSeek Client
-client = OpenAI(
-    api_key=api_key, 
-    base_url="https://api.deepseek.com"
-)
+# 2. Setup DeepSeek Client
+client = OpenAI(api_key=DEEPSEEK_KEY, base_url="https://api.deepseek.com")
 
-def run_chatbot():
-    print("!S!P!E!E!D!Y! DeepSeek Chatbot Active! (Type 'exit' to stop)")
-    
-    # This list keeps track of the context so the AI remembers your name/topic
-    messages = [
-        {"role": "system", "content": "You are a helpful programming assistant. Keep answers concise."}
-    ]
+# 3. Setup Discord Bot (Absolute)
+intents = discord.Intents.default()
+intents.message_content = True  # Allows Absolute to read messages
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-    while True:
-        user_input = input("\n👤 You: ")
-        
-        if user_input.lower() in ["exit", "quit", "bye"]:
-            print("Goodbye!")
-            break
+@bot.event
+async def on_ready():
+    print(f'✅ Absolute is online as {bot.user}')
 
-        # Add user message to history
-        messages.append({"role": "user", "content": user_input})
-
-        print("DeepSeek: ", end="", flush=True)
-        
+@bot.command()
+async def ask(ctx, *, question):
+    """Usage: !ask What is Python?"""
+    async with ctx.typing():  # Shows "Absolute is typing..."
         try:
-            # 3. Requesting a streaming response
             response = client.chat.completions.create(
                 model="deepseek-chat",
-                messages=messages,
-                stream=True
+                messages=[
+                    {"role": "system", "content": "You are Absolute, a smart Discord bot."},
+                    {"role": "user", "content": question}
+                ],
+                stream=False
             )
-
-            full_reply = ""
-            for chunk in response:
-                if chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    print(content, end="", flush=True)
-                    full_reply += content
             
-            print() # Print a newline at the end
-
-            # Add the assistant's reply to history
-            messages.append({"role": "assistant", "content": full_reply})
+            answer = response.choices[0].message.content
+            
+            # Discord has a 2000 character limit per message
+            if len(answer) > 2000:
+                await ctx.send(answer[:1997] + "...")
+            else:
+                await ctx.send(answer)
 
         except Exception as e:
-            print(f"\n Error: {e}")
+            await ctx.send(f"❌ Error: {e}")
 
-if __name__ == "__main__":
-    if not api_key:
-        print("Error: No API key found. Check your .env file!")
-    else:
-        run_chatbot()
+bot.run(DISCORD_TOKEN)
