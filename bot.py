@@ -45,7 +45,7 @@ class AbsoluteElite(commands.Bot):
             with open(file_path, "r") as f:
                 return json.load(f).get(key)
         except Exception as e:
-            print(f"⚠️ Read Error: {e}")
+            print(f"Read Error: {e}")
             return None
 
     def _save_config(self, file_path, key, value):
@@ -68,7 +68,7 @@ class AbsoluteElite(commands.Bot):
 
     # --- SETUP & STATUS ---
     async def setup_hook(self):
-        print("🔗 Syncing Command Tree...")
+        print("Syncing Command Tree...")
         await self.tree.sync()
         self.status_loop.start()
 
@@ -120,7 +120,7 @@ class AbsoluteElite(commands.Bot):
                     await message.reply(reply, mention_author=False)
 
             except Exception as e:
-                print(f"❌ Inference Error: {e}")
+                print(f"Inference Error: {e}")
 
 # --- BOT INSTANCE ---
 bot = AbsoluteElite()
