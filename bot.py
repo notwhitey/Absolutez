@@ -69,9 +69,9 @@ class AbsoluteElite(commands.Bot):
         await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=random.choice(statuses)))
 
     async def on_ready(self):
-        print(f"\n☀️  ENGINE READY: {self.user}")
-        print(f"📡  ACTIVE CHAT ID: {self.active_channel_id}")
-        print(f"🌊  LOG CHANNEL ID: {self.log_channel_id}\n")
+        print(f"\nENGINE READY: {self.user}")
+        print(f"\nACTIVE CHAT ID: {self.active_channel_id}")
+        print(f"\nLOG CHANNEL ID: {self.log_channel_id}\n")
 
     # --- SYSTEM LOGGING ---
     async def sys_log(self, title, content):
