@@ -1,6 +1,11 @@
 # --- Secrets & API Keys ---
 .env
 
+# --- Configuration & Data (Personal IDs) ---
+# We ignore these so your private Discord Channel IDs stay on your PC
+config.json
+data.json
+
 # --- Python Files ---
 __pycache__/
 *.py[cod]
@@ -13,9 +18,10 @@ env/
 
 # --- Logs & Databases ---
 *.log
-# If you ever use a local database like SQLite for Absolute:
 *.sqlite3
 *.db
+# Ignore the conversation logs if i/you add that feature later
+logs/
 
 # --- OS Specific ---
 .DS_Store
