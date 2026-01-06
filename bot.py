@@ -1,89 +1,134 @@
+#   _____ __________  _________________  .____     ____ ___________________________________
+#  /  _  \\______   \/   _____/\_____  \ |    |   |    |   \__    ___/\_   _____/\____    /
+# /  /_\  \|    |  _/\_____  \  /   |   \|    |   |    |   / |    |    |    __)_   /     / 
+#/    |    \    |   \/        \/    |    \    |___|    |  /  |    |    |        \ /     /_ 
+#\____|__  /______  /_______  /\_______  /_______ \______/   |____|   /_______  //_______ \
+#        \/       \/        \/         \/        \/                           \/         \/
+
+
 import os
-import logging
 import discord
+import asyncio
+import random
+import json
+from groq import Groq
 from discord.ext import commands
 from dotenv import load_dotenv
-from openai import OpenAI
+from datetime import datetime
 
-# 1. Professional Logging Setup
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | %(name)s: %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logger = logging.getLogger('Absolute')
+load_dotenv()
 
-class AbsoluteBot(commands.Bot):
+class AbsoluteElite(commands.Bot):
     def __init__(self):
-        # Configure intents: Message Content is required for prefix commands
         intents = discord.Intents.default()
-        intents.message_content = True
+        intents.message_content = True 
+        intents.members = True
+        super().__init__(command_prefix="!", intents=intents, help_command=None)
         
-        super().__init__(
-            command_prefix="!",
-            intents=intents,
-            help_command=None # Customizing the help command for professionalism
-        )
+        self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        self.log_channel_id = int(os.getenv("LOG_CHANNEL_ID", 0))
+        self.active_channel_id = self._load_config()
+        self.processed_messages = set()
         
-        load_dotenv()
-        self.openai_client = OpenAI(
-            api_key=os.getenv("DEEPSEEK_API_KEY"),
-            base_url="https://api.deepseek.com"
-        )
+        # Load personality as a list to allow "Smart Sampling"
+        self.personality_lines = self._load_personality_list()
+
+    def _load_personality_list(self):
+        try:
+            with open("personality.txt", "r", encoding="utf-8") as f:
+                lines = [line.strip() for line in f.readlines() if line.strip()]
+                print(f"✨ soul synced: {len(lines)} logic lines loaded.")
+                return lines
+        except Exception as e:
+            print(f"personality file error: {e}")
+            return ["you are absolute. chill tech vibe. lowercase only."]
+
+    def _load_config(self):
+        if os.path.exists("config.json"):
+            try:
+                with open("config.json", "r") as f:
+                    return json.load(f).get("target")
+            except: return None
+        return None
+
+    def _save_config(self, channel_id):
+        with open("config.json", "w") as f:
+            json.dump({"target": channel_id}, f)
 
     async def setup_hook(self):
-        """Initializes asynchronous components before the bot starts."""
-        logger.info("Initializing Absolute core systems...")
+        # Clears old broken commands and forces a fresh sync
+        print("--- refreshing command tree ---")
+        await self.tree.sync()
+        print("--- system refreshed ---")
 
     async def on_ready(self):
-        """Triggered when the bot successfully connects to Discord gateways."""
-        await self.change_presence(activity=discord.Game(name="Synthesizing Intelligence"))
-        logger.info(f"Absolute successfully authenticated as {self.user} (ID: {self.user.id})")
+        invite = f"https://discord.com/api/oauth2/authorize?client_id={self.user.id}&permissions=8&scope=bot%20applications.commands"
+        print(f"\nENGINE ONLINE: {self.user}")
+        print(f"INVITE: {invite}\n")
+        await self.change_presence(activity=discord.CustomActivity(name="optimizing context shards ☁️"))
 
-    async def on_command_error(self, ctx, error):
-        """Global error handler to prevent the bot from crashing silently."""
-        if isinstance(error, commands.CommandNotFound):
-            return
-        elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Error: Missing required parameters. Usage: `!ask [query]`")
-        else:
-            logger.error(f"Execution Error: {error}")
-            await ctx.send("An internal processing error occurred. Please contact the administrator.")
+    async def process_ai_reply(self, message):
+        """Logic moved inside the class to ensure 'self' is defined."""
+        async with message.channel.typing():
+            try:
+                # SMART SAMPLING: Prevents the 413 "Request Too Large" Error
+                # We take the first 15 lines (Rules) + 20 random lines (Lore)
+                header = self.personality_lines[:15]
+                lore = random.sample(self.personality_lines[15:], min(len(self.personality_lines)-15, 20))
+                dynamic_prompt = "\n".join(header + lore)
 
-# Instantiate the bot
-bot = AbsoluteBot()
+                loop = asyncio.get_event_loop()
+                completion = await loop.run_in_executor(
+                    None, 
+                    lambda: self.groq_client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": dynamic_prompt},
+                            {"role": "user", "content": message.content}
+                        ],
+                        model="llama-3.3-70b-versatile",
+                        temperature=0.75,
+                        presence_penalty=1.3,
+                        frequency_penalty=0.8, # Kills the repetitive loops
+                        max_tokens=60
+                    )
+                )
+                
+                reply = completion.choices[0].message.content.lower().strip()
+                await message.reply(reply, mention_author=False)
 
-@bot.command(name="ask")
-async def ask(ctx, *, prompt: str):
-    """Primary interface for DeepSeek interaction."""
-    async with ctx.typing():
-        try:
-            response = bot.openai_client.chat.completions.create(
-                model="deepseek-chat",
-                messages=[
-                    {"role": "system", "content": "You are Absolute, a professional AI assistant created by Zexino."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            
-            content = response.choices[0].message.content
-            
-            # Use Embeds for a more "professional" look
-            embed = discord.Embed(
-                description=content,
-                color=discord.Color.blue()
-            )
-            embed.set_footer(text="Absolute Intelligence Engine | Powered by DeepSeek")
-            
-            await ctx.send(embed=embed)
+            except Exception as e:
+                print(f"engine glitch: {e}")
 
-        except Exception as e:
-            logger.error(f"DeepSeek API Failure: {e}")
-            await ctx.send("Error: Unable to reach the intelligence engine.")
+# ==========================================
+# ==========================================
+bot = AbsoluteElite()
 
-if __name__ == "__main__":
-    token = os.getenv("DISCORD_TOKEN")
-    if token:
-        bot.run(token)
-    else:
-        logger.critical("No DISCORD_TOKEN found in environment variables.")
+@bot.tree.command(name="sync", description="locks absolute to this channel.")
+async def sync_slash(interaction: discord.Interaction):
+    bot.active_channel_id = interaction.channel_id
+    bot._save_config(interaction.channel_id)
+    await interaction.response.send_message("✨ frequency matched. soul locked.", ephemeral=True)
+
+@bot.command(name="sync")
+async def sync_text(ctx):
+    """Backup text command in case slash commands fail."""
+    bot.active_channel_id = ctx.channel.id
+    bot._save_config(ctx.channel.id)
+    await ctx.send("frequency matched via text protocol.")
+
+@bot.event
+async def on_message(message: discord.Message):
+    if message.author.bot or message.id in bot.processed_messages:
+        return
+    
+    bot.processed_messages.add(message.id)
+    if len(bot.processed_messages) > 100: bot.processed_messages.pop()
+
+    # Process !sync command
+    await bot.process_commands(message)
+
+    if bot.active_channel_id and message.channel.id == bot.active_channel_id:
+        if not message.content.startswith("!"):
+            asyncio.create_task(bot.process_ai_reply(message))
+
+bot.run(os.getenv("DISCORD_TOKEN"))
