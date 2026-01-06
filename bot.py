@@ -63,7 +63,8 @@ class AbsoluteElite(commands.Bot):
             with open("personality.txt", "r", encoding="utf-8") as f:
                 return [line.strip() for line in f.readlines() if line.strip()]
         except Exception as e:
-            print(f"❌ Personality missing: {e}")
+            # Run personality generator code first if you dont want this error gng
+            print(f"Personality missing: {e}")
             return ["you are absolute. sunshine vibe."]
 
     # --- SETUP & STATUS ---
